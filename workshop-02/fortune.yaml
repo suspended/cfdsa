@@ -1,0 +1,41 @@
+---
+kind: Namespace
+apiVersion: v1
+
+metadata:
+  name: myns
+  labels:
+    app: fortune-app
+    version: v1
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: fortune-deployment
+  namespace: myns
+  labels:
+    app: fortune-app
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: fortune-app
+      version: v1
+  template: 
+    metadata:
+      name: fortune-pod
+      namespace: myns
+      labels:
+        app: fortune-app
+        version: v1
+    spec:
+      containers:
+        - name: fortune-container
+          image: stackupiss/fortune:v1
+          imagePullPolicy: Always
+          ports:
+          - name: app-port
+            containerPort: 3000
+
+
