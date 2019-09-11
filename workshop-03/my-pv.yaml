@@ -1,0 +1,24 @@
+---
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: my-pv
+  namespace: myns
+  labels:
+    name: my-pv
+  annotations:
+    volume.beta.kubernetes.io/storage-provisioner: dobs.csi.digitalocean.com
+spec:
+    accessModes:
+    - ReadWriteOnce
+    capacity:
+        storage: 2Gi
+    csi:
+        driver: dobs.csi.digitalocean.com
+        fsType: ext4
+        #volumeAttributes:
+            #volume.beta.kubernetes.io/storage-provisioner: dobs.csi.digitalocean.com
+        volumeHandle: abc123
+    persistentVolumeReclaimPolicy: Retain
+    storageClassName: do-block-storage
+    volumeMode: Filesystem

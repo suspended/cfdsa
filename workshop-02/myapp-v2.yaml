@@ -44,11 +44,11 @@ spec:
       namespace: myns
       labels:
         app: myapp-pod
-        version: v1
+        version: v2
     spec:
       containers:
         - name: myapp
-          image: stackupiss/northwind-app:v1
+          image: stackupiss/northwind-app:v2
           imagePullPolicy: Always
           env:
           - name: DB_USER
