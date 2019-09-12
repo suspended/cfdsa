@@ -1,0 +1,5 @@
+helm install istio-init --name istio-init --namespace istio-system
+
+helm install istio --values istio/values-istio-demo.yaml --name istio --namespace istio-system
+
+istioctl kube-inject -f weather.yaml > waeather-with-sidecar.yaml

@@ -2,68 +2,106 @@
 kind: Secret
 apiVersion: v1
 metadata:
-    name: weather-secret
-    namespace: myns
-    labels:
-        app: weather-secret
+  name: weather-secret
+  namespace: myns
+  labels:
+    app: weather-secret
 data:
-    openweathermap_key: YWNhZDI2ZGE0NjZkM2MzZTUxYjg4NGFiODI1ZTE3Yzc=
+  openweathermap_key: YWNhZDI2ZGE0NjZkM2MzZTUxYjg4NGFiODI1ZTE3Yzc=
 ---
 kind: Deployment
 apiVersion: apps/v1
 metadata:
-    name: weather-deploy
-    namespace: myns
-    labels:
-        app: weather-deploy
+  name: weather-deploy
+  namespace: myns
+  labels:
+    app: weather-deploy
 spec:
-    replicas: 1
-    selector:
-        matchLabels:
-            app: weather-pod
-    template:
-        metadata:
-            name: weather-pod
-            labels:
-                app: weather-pod
-                version: v1
-        spec:
-            containers:
-            - name: weatherapp
-              image: stackupiss/weather:v1
-              imagePullPolicy: IfNotPresent
-              resources:
-                requests:
-                    cpu: 100m
-                limits:
-                    cpu: 100m
-              env:
-              - name: APP_PORT
-                value: "3000"
-              - name: APP_DEFAULT_CITY
-                value: "Singapore"
-              - name: APP_ID
-                valueFrom:
-                    secretKeyRef:
-                        name: weather-secret
-                        key: openweathermap_key
-              ports:
-                - name: weather-port
-                  containerPort: 3000
+  replicas: 2
+  selector:
+    matchLabels:
+      app: weather-pod
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  template:
+    metadata:
+      name: weather-pod
+      labels:
+        app: weather-pod
+        version: v1
+    spec:
+      containers:
+        - name: weatherapp
+          image: stackupiss/weather:v1
+          imagePullPolicy: Always
+          resources:
+            requests:
+              cpu: 100m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          env:
+            - name: APP_PORT
+              value: "3000"
+            - name: APP_DEFAULT_CITY
+              value: "Singapore"
+            - name: APP_ID
+              valueFrom:
+                secretKeyRef:
+                  name: weather-secret
+                  key: openweathermap_key
+          ports:
+            - name: weather-port
+              containerPort: 3000
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 3
+            periodSeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 3000
+            initialDelaySeconds: 3
+            periodSeconds: 3
 
 ---
 kind: Service
 apiVersion: v1
 metadata:
-    name: weather-svc
+  name: weather-svc
+  namespace: myns
+  labels:
+    app: weather-svc
+spec:
+  type: ClusterIP
+  selector:
+    app: weather-pod
+  ports:
+    - name: weather-svc-port
+      port: 3000
+      targetPort: weather-port
+---
+kind: Ingress
+apiVersion: networking.k8s.io/v1beta1
+metadata:
+    name: weather-ing
     namespace: myns
     labels:
-        app: weather-svc
+        name: weather-app
+    annotations:
+        nginx.ingress.kubernetes.io/ssl-redirect: "false"
 spec:
-    type: LoadBalancer
-    selector:
-        app: weather-pod
-    ports:
-    - name: mypp-svc-port
-      port: 80
-      targetPort: weather-port
+    rules:
+    - host: weather.com
+      http:
+        paths:
+        - path: /
+          backend:
+            serviceName: weather-svc
+            servicePort: weather-port
