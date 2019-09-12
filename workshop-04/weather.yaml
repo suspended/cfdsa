@@ -1,0 +1,69 @@
+---
+kind: Secret
+apiVersion: v1
+metadata:
+    name: weather-secret
+    namespace: myns
+    labels:
+        app: weather-secret
+data:
+    openweathermap_key: YWNhZDI2ZGE0NjZkM2MzZTUxYjg4NGFiODI1ZTE3Yzc=
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+    name: weather-deploy
+    namespace: myns
+    labels:
+        app: weather-deploy
+spec:
+    replicas: 1
+    selector:
+        matchLabels:
+            app: weather-pod
+    template:
+        metadata:
+            name: weather-pod
+            labels:
+                app: weather-pod
+                version: v1
+        spec:
+            containers:
+            - name: weatherapp
+              image: stackupiss/weather:v1
+              imagePullPolicy: IfNotPresent
+              resources:
+                requests:
+                    cpu: 100m
+                limits:
+                    cpu: 100m
+              env:
+              - name: APP_PORT
+                value: "3000"
+              - name: APP_DEFAULT_CITY
+                value: "Singapore"
+              - name: APP_ID
+                valueFrom:
+                    secretKeyRef:
+                        name: weather-secret
+                        key: openweathermap_key
+              ports:
+                - name: weather-port
+                  containerPort: 3000
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+    name: weather-svc
+    namespace: myns
+    labels:
+        app: weather-svc
+spec:
+    type: LoadBalancer
+    selector:
+        app: weather-pod
+    ports:
+    - name: mypp-svc-port
+      port: 80
+      targetPort: weather-port
